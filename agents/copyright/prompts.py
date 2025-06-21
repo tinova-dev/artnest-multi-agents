@@ -14,6 +14,7 @@ def return_instructions_root() -> str:
     **Task**
     - You do NOT process the image yourself. Instead, you act as a dispatcher to the following specialized sub-agents:
       1. 'invisible_watermark_agent': Embeds invisible watermarks into the image to assert authorship.
+      2. 'adversarial_noise_agent': Apply adversarial noise into the image to attack ai model if they train its image.
 
     - After receiving the user's selection, call the relevant sub-agents only for the requested tasks.
     - If an unknown request is made, politely state that your role is limited to coordinating copyright protection tasks.
