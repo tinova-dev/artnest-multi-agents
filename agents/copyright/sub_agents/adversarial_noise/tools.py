@@ -4,6 +4,12 @@ import random
 import torch
 import torch.nn.functional as F
 
+import torchvision.transforms as transforms
+from torchvision.models import resnet18
+from art.attacks.evasion import PixelAttack
+from art.estimators.classification import PyTorchClassifier
+
+
 from torchvision import transforms
 from torchvision.models import resnet18
 
@@ -14,7 +20,7 @@ from google.adk.tools import ToolContext
 from copyright.utils.utils import get_data_path
 
 
-def load_image(image_path: str, image_size: int = 224) -> torch.Tensor:
+def load_image_to_tensor(image_path: str, image_size: int = 224) -> torch.Tensor:
     """이미지 불러오기 및 전처리"""
     image = Image.open(image_path).convert("RGB")
     transform = transforms.Compose([
@@ -24,10 +30,87 @@ def load_image(image_path: str, image_size: int = 224) -> torch.Tensor:
     return transform(image).unsqueeze(0)
 
 
-def save_image(tensor: torch.Tensor, path: str):
+def tensor_to_pil(tensor: torch.Tensor, path: str):
     """Tensor를 이미지로 저장"""
     image = transforms.ToPILImage()(tensor.squeeze(0).cpu())
     image.save(path)
+    
+
+def run_pixel_attack(
+    image_path: str,
+    max_iter: int = 75,
+    targeted: bool = False,
+    save_dir: str = "./output"
+) -> dict:
+    """
+    PixelAttack 실행 함수 (ADK Tool 용)
+
+    Args:
+        image_path: 공격 대상 이미지 경로
+        max_iter: 진화 전략 반복 횟수
+        targeted: 타겟 공격 여부
+        save_dir: 결과 저장 디렉토리
+
+    Returns:
+        dict: 예측 결과와 파일 경로 정보
+    """
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    # 1. 이미지 로드
+    image_path = get_data_path(image_path)
+    image_tensor = load_image_to_tensor(image_path)
+
+    # 2. 모델 로드 및 classifier 래핑
+    model = resnet18(pretrained=True)
+    model.eval()
+    classifier = PyTorchClassifier(
+        model=model,
+        clip_values=(0.0, 1.0),
+        loss=torch.nn.CrossEntropyLoss(),
+        input_shape=(3, 224, 224),
+        nb_classes=1000,
+    )
+
+    # 3. 공격 생성자
+    attack = PixelAttack(
+        classifier=classifier,
+        max_iter=max_iter,
+        targeted=targeted,
+        verbose=False
+    )
+
+    # 4. 공격 수행
+    x_adv = attack.generate(x=image_tensor.numpy())
+
+    # 5. 예측 비교
+    pred_original = classifier.predict(image_tensor.numpy()).argmax(axis=1)[0]
+    pred_adv = classifier.predict(x_adv).argmax(axis=1)[0]
+
+    # 6. 결과 저장
+    original_img = tensor_to_pil(image_tensor)
+    adv_img = tensor_to_pil(torch.tensor(x_adv))
+    diff_img = Image.fromarray(
+        np.uint8(np.abs(np.array(original_img) - np.array(adv_img)))
+    )
+
+    original_path = os.path.join(save_dir, "original.png")
+    adv_path = os.path.join(save_dir, "adv.png")
+    diff_path = os.path.join(save_dir, "diff.png")
+
+    original_img.save(original_path)
+    adv_img.save(adv_path)
+    diff_img.save(diff_path)
+
+    return {
+        "original_pred": int(pred_original),
+        "adv_pred": int(pred_adv),
+        "original_image_path": original_path,
+        "adv_image_path": adv_path,
+        "diff_image_path": diff_path,
+        "max_iter": max_iter,
+        "targeted": targeted
+    }
 
 
 def evaluate(model, image, label):
@@ -92,7 +175,7 @@ async def run_one_pixel_attack(
     model = resnet18(pretrained=True).eval().to(device)
 
     image_path = get_data_path(image_path)
-    image = load_image(image_path).to(device)
+    image = load_image_to_tensor(image_path).to(device)
     label = torch.tensor([label_index]).to(device)
 
     attacked_image, is_success = one_pixel_attack(model, image, label)
@@ -101,8 +184,8 @@ async def run_one_pixel_attack(
     original_path = os.path.join(output_dir, "original.png")
     attacked_path = os.path.join(output_dir, "attacked.png")
 
-    save_image(image, original_path)
-    save_image(attacked_image, attacked_path)
+    tensor_to_pil(image, original_path)
+    tensor_to_pil(attacked_image, attacked_path)
 
     result = {
         "original_image_path": original_path,
@@ -158,7 +241,7 @@ async def run_fgsm_attack(
     image_path = get_data_path(image_path)
 
     # 이미지 로드
-    image = load_image(image_path).to(device)
+    image = load_image_to_tensor(image_path).to(device)
     label = torch.tensor([label_index]).to(device)
 
     # 공격 수행
@@ -170,8 +253,8 @@ async def run_fgsm_attack(
     perturbed_path = os.path.join(output_dir, "perturbed.png")
     diff_path = os.path.join(output_dir, "perturbation.png")
 
-    save_image(image, original_path)
-    save_image(perturbed_image, perturbed_path)
+    tensor_to_pil(image, original_path)
+    tensor_to_pil(perturbed_image, perturbed_path)
 
     # Perturbation visualization (gradient 값 시각화)
     perturbation = grad.squeeze(0).detach().cpu().numpy()
