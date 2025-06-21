@@ -1,22 +1,20 @@
-import json
 import os
 from dotenv import load_dotenv
 
-from google.adk.tools import ToolContext
 from google.adk.agents import Agent
 
-from .prompts import return_instructions_watermark
-from .tools import encode_image
+from .prompts import return_instructions_adversarial_noise
+from .tools import run_fgsm_attack
 
 load_dotenv()
 
 
 root_agent = Agent(
     model=os.getenv("MODEL"),
-    name="watermark_agent",
-    description="Applies an invisible watermark to an artwork image using robust encoding methods. The watermark includes copyright metadata in JSON format to protect the creator’s rights.",
-    instruction=return_instructions_watermark(),
-    tools=[encode_image]
+    name="adversarial_noise_agents",
+    description="An agent that generates adversarial images using the FGSM method to evaluate model robustness and simulate potential AI attacks.",
+    instruction=return_instructions_adversarial_noise(),
+    tools=[run_fgsm_attack]
 )
 
 # import asyncio
