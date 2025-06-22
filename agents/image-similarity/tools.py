@@ -65,36 +65,33 @@ async def search_google_lens_by_url(image_url: str):
             print("⚠️ Visual matches 탭 클릭 실패:", e)
 
         # 6. 썸네일 이미지 (Base64 or CDN) 추출
-        thumbnail_elements = await page.locator("img").all()
-
-        thumbnail_links = []
-        for img in thumbnail_elements:
-            src = await img.get_attribute("src")
-            if src and src.startswith("data:image/jpeg;base64,"):
-                thumbnail_links.append(src)
-
-        thumbnail_links = thumbnail_links[:10]
-
-        print("\n🖼️ Visual Matches 상위 10개 썸네일:")
-        for link in thumbnail_links:
-            print(" -", link)
-            
+        result = []
+        thumbnail_elements = await page.locator('div.kb0PBd img').all()
+        
         # 7. 썸네일 이미지 링크 추출
         link_elements = await page.locator('a:has(span.Yt787)').all()
 
-        source_links = []
-        for link in link_elements:
+        result = []
+        for index, (img, link) in enumerate(zip(thumbnail_elements[:5], link_elements[:5]), start=1):
+            image_links = {}
+
+            src = await img.get_attribute("src")
+            if src and src.startswith("data:image/jpeg;base64,"):
+                image_links[f'thumbnail_{index}'] = src
+
             href = await link.get_attribute("href")
             if href and href.startswith("http"):
-                source_links.append(href)
+                image_links[f'link_{index}'] = href
 
-        # 상위 10개만 출력
-        source_links = source_links[:10]
-        print("\n🌐 원본 웹사이트 링크:")
-        for link in source_links:
-            print(" -", link)
+            result.append(image_links)
 
+        print("\n🖼️")
+        print(result)         
+
+        await page.wait_for_timeout(2000)
         await browser.close()
+        
+        return result
 
 # 실행 예시
 if __name__ == "__main__":
