@@ -1,7 +1,20 @@
+import os
+import requests
 import asyncio
+import uuid
+from typing import List
+from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 
-async def search_google_lens_by_url(image_url: str):
+from google.cloud import storage
+from google.adk.tools.tool_context import ToolContext
+
+from .type import ImageURLs
+
+load_dotenv()
+
+
+async def search_google_lens_by_url(image_url: str, tool_context: ToolContext):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=False, slow_mo=300)
         context = await browser.new_context(
@@ -71,7 +84,7 @@ async def search_google_lens_by_url(image_url: str):
         # 7. 썸네일 이미지 링크 추출
         link_elements = await page.locator('a:has(span.Yt787)').all()
 
-        result = []
+        result: List[ImageURLs] = []
         for index, (img, link) in enumerate(zip(thumbnail_elements[:5], link_elements[:5]), start=1):
             image_links = {}
 
@@ -91,11 +104,61 @@ async def search_google_lens_by_url(image_url: str):
         await page.wait_for_timeout(2000)
         await browser.close()
         
+        tool_context.state['image_links'] = result
+        
         return result
 
+
+def upload_image_to_gcs(
+    tool_context: ToolContext,
+    destination_blob_name: str,
+    service_account_path: str = "service_account.json"
+): 
+    try:
+        image_links: List[ImageURLs] = tool_context.state.get('image_links')
+        
+        for links, index in enumerate(image_links):
+            # 1. 이미지 다운로드
+            response = requests.get(links.image_url, stream=True, timeout=10)
+            if response.status_code != 200:
+                print("❌ 이미지 다운로드 실패:", response.status_code)
+                return None
+
+            # 2. 임시 파일로 저장
+            temp_file = f"scraped/{uuid.uuid4()}/temp_image_{index}.png"
+            with open(temp_file, "wb") as f:
+                for chunk in response.iter_content(1024):
+                    f.write(chunk)
+            
+            # ✅ 메타데이터 설정
+            blob.metadata = {
+                "source_url": links.website_link
+            }
+
+            # 3. GCS 클라이언트 설정
+            storage_client = storage.Client.from_service_account_json(service_account_path)
+            bucket = storage_client.bucket(os.getenv("GOOGLE_CLOUD_STORAGE_BUCKET"))
+            blob = bucket.blob(destination_blob_name)
+        
+            # 4. 업로드
+            blob.upload_from_filename(temp_file, content_type="image/png")
+            blob.make_public()  # 퍼블릭 읽기 허용
+
+            # 5. 임시 파일 삭제
+            os.remove(temp_file)
+
+            print("✅ 업로드 성공:", blob.public_url)
+            print("   🔗 출처:", links.website_link)
+            return blob.public_url
+
+    except Exception as e:
+        print("❌ 업로드 실패:", e)
+        return None
+    
+    
 # 실행 예시
-if __name__ == "__main__":
-    image_url = "https://storage.googleapis.com/artnest-suspected-images/artworks/jellyfish.png"
-    asyncio.run(search_google_lens_by_url(image_url))
+# if __name__ == "__main__":
+#     image_url = "https://storage.googleapis.com/artnest-suspected-images/artworks/jellyfish.png"
+#     asyncio.run(search_google_lens_by_url(image_url))
 
 
