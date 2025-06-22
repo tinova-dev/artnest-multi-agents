@@ -3,11 +3,12 @@ from playwright.async_api import async_playwright
 
 async def search_google_lens_by_url(image_url: str):
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        browser = await p.chromium.launch(headless=False, slow_mo=300)
         context = await browser.new_context(
             locale="en-US",
             extra_http_headers={"Accept-Language": "en-US,en;q=0.9"},
-            timezone_id="America/Los_Angeles"
+            timezone_id="America/Los_Angeles",
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
         )
         page = await context.new_page()
 
@@ -45,10 +46,42 @@ async def search_google_lens_by_url(image_url: str):
         # 4. 결과 기다리기
         await page.wait_for_load_state("networkidle", timeout=10000)
         await page.wait_for_timeout(3000)  # 결과 로딩 보조 대기
+        
+        # 🖱️ 마우스/키보드 움직임 흉내내기
+        await page.mouse.move(100, 100)
+        await page.wait_for_timeout(500)
+        await page.mouse.move(300, 200)
+        await page.wait_for_timeout(500)
+        await page.keyboard.press("Tab")
+        await page.wait_for_timeout(300)
+        await page.keyboard.type("Hello", delay=200)
+        await page.wait_for_timeout(500)
 
-        # 5. 결과 스크린샷 저장
-        await page.screenshot(path="lens_result.png")
-        print("✅ Search complete. Result URL:", page.url)
+        # 5. "Visual matches" 탭 클릭
+        try:
+            await page.locator('div.YmvwI', has_text="Visual matches").click()
+            await page.wait_for_timeout(2000)
+        except Exception as e:
+            print("⚠️ Visual matches 탭 클릭 실패:", e)
+
+        # 6. 썸네일 이미지 (Base64 or CDN) 추출
+        thumbnail_elements = await page.locator("img").all()
+
+        thumbnail_links = []
+        for img in thumbnail_elements:
+            src = await img.get_attribute("src")
+            if src and src.startswith("data:image/jpeg;base64,"):
+                thumbnail_links.append(src)
+
+        thumbnail_links = thumbnail_links[:10]
+
+        print("\n🖼️ Visual Matches 상위 10개 썸네일:")
+        for link in thumbnail_links:
+            print(" -", link)
+
+        # print("\n🌐 이미지 출처 링크:")
+        # for src in source_links[:5]:
+        #     print(" -", src)
 
         await browser.close()
 
