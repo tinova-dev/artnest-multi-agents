@@ -78,10 +78,21 @@ async def search_google_lens_by_url(image_url: str):
         print("\n🖼️ Visual Matches 상위 10개 썸네일:")
         for link in thumbnail_links:
             print(" -", link)
+            
+        # 7. 썸네일 이미지 링크 추출
+        link_elements = await page.locator('a:has(span.Yt787)').all()
 
-        # print("\n🌐 이미지 출처 링크:")
-        # for src in source_links[:5]:
-        #     print(" -", src)
+        source_links = []
+        for link in link_elements:
+            href = await link.get_attribute("href")
+            if href and href.startswith("http"):
+                source_links.append(href)
+
+        # 상위 10개만 출력
+        source_links = source_links[:10]
+        print("\n🌐 원본 웹사이트 링크:")
+        for link in source_links:
+            print(" -", link)
 
         await browser.close()
 
@@ -89,3 +100,5 @@ async def search_google_lens_by_url(image_url: str):
 if __name__ == "__main__":
     image_url = "https://storage.googleapis.com/artnest-suspected-images/artworks/jellyfish.png"
     asyncio.run(search_google_lens_by_url(image_url))
+
+
