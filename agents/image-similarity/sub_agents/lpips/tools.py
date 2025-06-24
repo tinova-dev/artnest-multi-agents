@@ -7,6 +7,8 @@ from PIL import Image
 from torchvision import transforms
 import os
 
+from utils.utils import get_data_path
+
 
 def load_image(image_path, resize=(256, 256)):
     """이미지를 로드하고 텐서로 변환합니다."""
@@ -31,6 +33,9 @@ def compute_lpips_similarity(image_path_1: str, image_path_2: str) -> float:
     Returns:
         float: LPIPS distance 값 (0 ~ 1 사이, 낮을수록 유사함)
     """
+    
+    image_path_1 = get_data_path(image_path_1)
+    image_path_2 = get_data_path(image_path_2)
     if not os.path.exists(image_path_1) or not os.path.exists(image_path_2):
         raise FileNotFoundError("입력된 이미지 경로가 존재하지 않습니다.")
 
