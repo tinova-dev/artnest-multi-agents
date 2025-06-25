@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import argparse
 import torchvision
+from typing import List
 
 from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
 from pytorch_grad_cam import GradCAM
@@ -60,6 +61,36 @@ def get_image_with_path(path: str):
     return img_rgb, rgb_img_float, input_tensor
 
 
+def generate_gradcam_heatmap(
+    input_tensor: torch.Tensor,
+    input_float_image: np.ndarray,
+    concept_vector: torch.Tensor,
+    targets: List,
+) -> np.ndarray:
+    """
+    Grad-CAM을 이용해 주어진 이미지에서 개념 벡터(concept_vector)와의 유사도 기반으로
+    주목한 영역을 heatmap으로 반환
+
+    Args:
+        model: Grad-CAM에 사용할 모델
+        input_tensor (torch.Tensor): 입력 이미지 텐서 (1, 3, H, W)
+        input_float_image (np.ndarray): 0~1 사이로 정규화된 이미지 (H, W, 3), RGB
+        concept_vector (torch.Tensor): 비교할 개념 벡터 (1D)
+        target_layers (List): Grad-CAM에서 사용할 레이어 리스트
+
+    Returns:
+        np.ndarray: RGB heatmap 이미지 (uint8)
+    """
+    
+    target_layers = [resnet.layer4[-1]]
+
+    with GradCAM(model=model, target_layers=target_layers) as cam:
+            grayscale_cam = cam(input_tensor=input_tensor, targets=targets)[0, :]
+
+    heatmap = show_cam_on_image(input_float_image, grayscale_cam, use_rgb=True)
+    return heatmap
+
+
 def compute_pixel_attribution(
     image_path_a: str,
     image_path_b: str,
@@ -80,26 +111,32 @@ def compute_pixel_attribution(
     # Load and preprocess images
     image_path_a = get_data_path(image_path_a)
     image_path_b = get_data_path(image_path_b)
-    original_img, original_img_float, original_tensor = get_image_with_path(image_path_a)
+    original_img, _, original_tensor = get_image_with_path(image_path_a)
     suspected_img, suspected_img_float, suspected_tensor  = get_image_with_path(image_path_b)
     
     original_concept_features = model(original_tensor)[0, :]
-    suspected_concept_features = model(suspected_tensor)[0, :]
     
     #
-    target_layers = [resnet.layer4[-1]]
     original_targets = [SimilarityToConceptTarget(original_concept_features)]
-
-    with GradCAM(model=model, target_layers=target_layers) as cam:
-        car_grayscale_cam = cam(input_tensor=suspected_tensor,
-                            targets=original_targets)[0, :]
-    original_cam_image = show_cam_on_image(suspected_img_float, car_grayscale_cam, use_rgb=True)
-    Image.fromarray(original_cam_image)
-
-    # 
-    # not_original_targets = [DifferenceFromConceptTarget(original_concept_features)]
     
-    combined_image = np.hstack((original_img, suspected_img, original_cam_image))
+    original_cam_image = generate_gradcam_heatmap(
+        input_tensor=suspected_tensor,
+        input_float_image=suspected_img_float,
+        concept_vector=original_concept_features,
+        targets=original_targets
+    )   
+    
+    # 
+    not_original_targets = [DifferenceFromConceptTarget(original_concept_features)]
+    
+    not_original_cam_image = generate_gradcam_heatmap(
+        input_tensor=suspected_tensor,
+        input_float_image=suspected_img_float,
+        concept_vector=original_concept_features,
+        targets=not_original_targets
+    )   
+    
+    combined_image = np.hstack((original_img, suspected_img, original_cam_image, not_original_cam_image))
     combined_pil_image = Image.fromarray(combined_image)
     
     save_path = get_data_path("gradcam.png")
