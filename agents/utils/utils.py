@@ -1,4 +1,16 @@
+import torch
 from pathlib import Path
+
+def is_gpu_available() -> str:
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+        print('cuda found!')
+        return device
+    else:
+        device = torch.device('cpu')
+        print('no cuda found, will use cpu')
+        return device
+
 
 def get_data_path(filename: str = "") -> str:
     """

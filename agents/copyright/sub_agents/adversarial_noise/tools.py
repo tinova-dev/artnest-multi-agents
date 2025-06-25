@@ -17,7 +17,8 @@ from PIL import Image
 from typing import Optional
 from google.adk.tools import ToolContext
 
-from copyright.utils.utils import get_data_path
+# from copyright.utils.utils import get_data_path
+from utils.utils import get_data_path
 
 
 def load_image_to_tensor(image_path: str, image_size: int = 224) -> torch.Tensor:
