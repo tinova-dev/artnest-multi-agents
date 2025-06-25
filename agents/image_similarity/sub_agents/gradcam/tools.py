@@ -169,15 +169,20 @@ def compute_pixel_attribution(
     original_img_labeled = add_title_to_image(original_img, "Original Image")
     suspected_img_labeled = add_title_to_image(suspected_img, "Suspected Image")
     original_cam_image_labeled = add_title_to_image(original_cam_image, "Which area is suspected")
-    not_original_cam_image_labeled = add_title_to_image(not_original_cam_image, "GradCAM (Not Original)")
     
     result_image = np.hstack((original_img_labeled, suspected_img_labeled, original_cam_image_labeled))
     result_pil_image = Image.fromarray(result_image)
     
-    save_path = get_data_path("gradcam.png")
-    result_pil_image.save(save_path)
+    result_save_path = get_data_path("result", "gradcam_matched.png")
+    result_pil_image.save(result_save_path)
+    
+    not_original_cam_image_labeled = add_title_to_image(not_original_cam_image, "GradCAM (Not Original)")
+    not_original_cam_image = Image.fromarray(not_original_cam_image_labeled)
+    
+    not_original_save_path = get_data_path("result", "gradcam_unmatched.png")
+    not_original_cam_image.save(not_original_save_path)
 
-    return save_path
+    return result_save_path
 
 
 if __name__ == "__main__":
