@@ -1,5 +1,5 @@
 import torch
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import cv2
 import argparse
@@ -42,6 +42,39 @@ class DifferenceFromConceptTarget:
         return 1 - cos(model_output, self.features)
 
 
+def add_title_to_image(image: np.ndarray, title: str, font_size: int = 30, title_height: int = 40) -> np.ndarray:
+    """
+    텍스트 크기와 무관하게 고정된 높이로 제목 공간 확보
+
+    Args:
+        image (np.ndarray): 원본 이미지
+        title (str): 제목 텍스트
+        font_size (int): 폰트 크기
+        title_height (int): 고정된 제목 영역 높이
+
+    Returns:
+        np.ndarray: 제목이 포함된 새로운 이미지
+    """
+    pil_img = Image.fromarray(image)
+    img_w, img_h = pil_img.size
+
+    font = ImageFont.load_default(font_size)
+
+    # 새 이미지 생성: 위에 title_height만큼 공간 추가
+    new_img = Image.new("RGB", (img_w, img_h + title_height), (255, 255, 255))
+    new_img.paste(pil_img, (0, title_height))
+
+    # 텍스트 추가 (위쪽 가운데 정렬)
+    draw = ImageDraw.Draw(new_img)
+    text_bbox = draw.textbbox((0, 0), title, font=font)
+    text_w = text_bbox[2] - text_bbox[0]
+    text_h = text_bbox[3] - text_bbox[1]
+    
+    draw.text(((img_w - text_w) / 2, (title_height - text_h) / 2), title, fill=(0, 0, 0), font=font)
+
+    return np.array(new_img)
+
+
 def get_image_with_path(path: str):
     img_bgr = cv2.imread(path)  # 이미지 로드 (BGR)
     if img_bgr is None:
@@ -64,7 +97,6 @@ def get_image_with_path(path: str):
 def generate_gradcam_heatmap(
     input_tensor: torch.Tensor,
     input_float_image: np.ndarray,
-    concept_vector: torch.Tensor,
     targets: List,
 ) -> np.ndarray:
     """
@@ -122,7 +154,6 @@ def compute_pixel_attribution(
     original_cam_image = generate_gradcam_heatmap(
         input_tensor=suspected_tensor,
         input_float_image=suspected_img_float,
-        concept_vector=original_concept_features,
         targets=original_targets
     )   
     
@@ -132,15 +163,19 @@ def compute_pixel_attribution(
     not_original_cam_image = generate_gradcam_heatmap(
         input_tensor=suspected_tensor,
         input_float_image=suspected_img_float,
-        concept_vector=original_concept_features,
         targets=not_original_targets
     )   
     
-    combined_image = np.hstack((original_img, suspected_img, original_cam_image, not_original_cam_image))
-    combined_pil_image = Image.fromarray(combined_image)
+    original_img_labeled = add_title_to_image(original_img, "Original Image")
+    suspected_img_labeled = add_title_to_image(suspected_img, "Suspected Image")
+    original_cam_image_labeled = add_title_to_image(original_cam_image, "Which area is suspected")
+    not_original_cam_image_labeled = add_title_to_image(not_original_cam_image, "GradCAM (Not Original)")
+    
+    result_image = np.hstack((original_img_labeled, suspected_img_labeled, original_cam_image_labeled))
+    result_pil_image = Image.fromarray(result_image)
     
     save_path = get_data_path("gradcam.png")
-    combined_pil_image.save(save_path)
+    result_pil_image.save(save_path)
 
     return save_path
 
