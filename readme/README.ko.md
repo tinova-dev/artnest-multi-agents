@@ -42,6 +42,9 @@
 
 ## ERD
 
+<img width="619" height="720" alt="ArtNest" src="https://github.com/user-attachments/assets/ff5ec684-9e4d-4f57-8ad0-0174a2c1d34f" />
+
+
 ## 기술 스택
 
 | 구분               | 사용 기술                                 |
