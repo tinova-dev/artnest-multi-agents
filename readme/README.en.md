@@ -6,8 +6,6 @@ A multi-agent based copyright protection system designed to help creators facing
 This project was developed as part of the [2025 Bolt Hackathon](https://worldslargesthackathon.devpost.com/).  
 This repository contains the implementation of the **multi-agent system** of ArtNest.  👉 [Frontend Repository](https://github.com/tinovadev/artnest-frontend)
 
----
-
 ## Project Overview
 
 ### Background
@@ -20,8 +18,6 @@ Inspired by the real struggles of my sister, who majored in fine arts. **ArtNest
   - **Kyungseo Park**: Algorand blockchain integration (100%), frontend & backend (50%)  
   - **Gawon Bae**: UI/UX Design  
 - **Submission page & Demo video:** https://devpost.com/software/project-1qlz5jvgpocy  
-
----
 
 ## Key Features
 
@@ -45,8 +41,8 @@ Inspired by the real struggles of my sister, who majored in fine arts. **ArtNest
 
 
 ## ERD
-*(To be added or described if diagrams are unavailable.)*
 
+<img width="619" height="720" alt="ArtNest" src="https://github.com/user-attachments/assets/ff5ec684-9e4d-4f57-8ad0-0174a2c1d34f" />
 
 ## Tech Stack
 
