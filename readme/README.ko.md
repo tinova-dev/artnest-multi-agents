@@ -4,7 +4,7 @@
 작품 표절로 어려움을 겪는 창작자들을 위한 멀티 에이전트 기반 저작권 보호 시스템
 
 본 프로젝트는 [2025 Bolt Hackathon 참여 프로젝트](https://worldslargesthackathon.devpost.com/) 입니다. <br>
-해당 레포는 ArtNest의 멀티 에이전트 시스템이 구현되어 있습니다. -> [프론트엔드 레포 바로가기](https://github.com/tinovadev/artnest-frontend)
+해당 레포는 ArtNest의 멀티 에이전트 시스템이 구현되어 있습니다. 👉 [프론트엔드 레포 바로가기](https://github.com/tinovadev/artnest-frontend)
 
 ## 프로젝트 소개
 
