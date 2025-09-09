@@ -14,8 +14,8 @@
 ### 프로젝트 개요
 - 기간: 2025년 5월 - 6월
 - 팀 구성
-  - 손민하: 멀티 에이전트 개발 (100%) 및 프론트, 백엔드 개발 (50%)
-  - 박경서: Algorand 블록체인 연결 (100%) 및 프론트, 백엔드 개발 (50%)
+  - 손민하: 멀티 에이전트 개발 및 배포 (100%) / 데이터베이스 설계 (100%) / 프론트, 백엔드 개발 (50%)
+  - 박경서: Algorand 블록체인 개발 (100%) 및 프론트, 백엔드 개발 (50%)
   - 배가원: UI/UX 디자인
 - 프로젝트 제출 페이지 및 데모 영상: https://devpost.com/software/project-1qlz5jvgpocy
 
@@ -50,14 +50,14 @@
 | 구분               | 사용 기술                                 |
 | ------------------ | ----------------------------------------- |
 | Frontend, Backend  | Next.js, TailwindCSS, ShadcnUI, Bolt.new  |
-| Multi Agent System | Google ADK, CrewAI                        |
+| Multi Agent System | Google ADK                        |
 | AI 모델            | CLIP, DISTS, LPIPS, Grad-CAM              |
 | DevOps             | Google Cloud (Cloud Run, GCS, PostgreSQL) |
 
 ### 기술 스택 선정 이유
 
 Bolt.new 해커톤 제약
-- 해커톤 규칙상 대부분의 개발을 Bolt.new 환경에서 진행해야 했음
+- 해커톤 규칙상 대부분의 개발을 Bolt.new 환경에서 진행해야 했고, 오직 **JavaScript**만 지원
 - 따라서 웹은 프론트엔드, 백엔드 개발이 전부 가능한 **NextJS** 프레임워크로 개발
 
 [Google Cloud 해커톤](https://googlecloudmultiagents.devpost.com/?ref_feature=challenge&ref_medium=discover&_gl=1*6cd8jv*_gcl_au*MTYwNDI5NTM4NC4xNzU1NDI5NDc2*_ga*MTk2MzcxNTkwNi4xNzU1NDI5NDc2*_ga_0YHJK3Y10M*czE3NTU0Mjk0NzUkbzEkZzEkdDE3NTU0Mjk1MzckajYwJGwwJGgw) 병행 시도
@@ -72,10 +72,10 @@ Bolt.new 해커톤 제약
 
 - Puppeteer를 활용해 자동 스크롤링 기반 이미지 수집을 구현했으나, 구글에서 반복 요청으로 인해 IP가 차단되는 문제가 발생
 - Headless 모드, User-Agent 변경, 요청 간격 조정 등 여러 우회 방법을 시도했으나 해커톤 기간 내에는 안정적인 해결에 한계가 있었음
-- 단순 웹 스크래핑 방식의 한계를 확인했고, 서비스 수준에서는 공식 API 활용을 최우선으로 하고, 프록시 로테이션, 요청 지연(backoff)등의 다른 전략이 필요함을 학습
+- 단순 웹 스크래핑 방식의 한계를 확인했고, 서비스 수준에서는 공식 API 활용을 최우선으로 하고, 프록시 로테이션 등의 다른 전략이 필요함을 학습
 
 ### 저작권 방지 마킹 취약성
 
 - 이미지에 adversarial noise를 삽입하여 AI 모델이 작품을 학습하려는 것을 방지하려고 했지만, GPT 모델이 마킹을 무시하고 원본 이미지를 그대로 설명
-- 이를 통해 단순한 노이즈 삽입은 AI 모델 학습 방어에 효과적이지 않음을 확인
+- 이를 통해 단순한 노이즈 삽입은 AI 모델 학습 방어에 효과적이지 않음을 확인했으며, 시간 부족으로 모델의 고도화는 하지 못함
 - 더 정교한 adversarial perturbation, Opt-out 메타데이터 등 최신 연구 기반 기법을 병행해야 한다는 인사이트를 얻음
